@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Optional: For vibration in notifications/snackbars -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <application
-        android:label="smart_ridebooking"
+        android:label="smart ridebooking"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
