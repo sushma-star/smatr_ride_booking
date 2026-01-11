@@ -1,14 +1,13 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/trip_model.dart';
 
 import '../../provider/trip_provider.dart';
+import '../../widgets/driver_tracker.dart';
 import '../../widgets/ride_status_chip.dart';
 import '../booking/live_booking_screen.dart';
 import '../trips/add_trip_screen.dart';
-
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,11 +22,7 @@ class TripTile extends ConsumerWidget {
   final Trip trip;
   final int index;
 
-    TripTile({
-    super.key,
-    required this.trip,
-    required this.index,
-  });
+  TripTile({super.key, required this.trip, required this.index});
 
   static const Color themeColor = Colors.blue;
 
@@ -36,12 +31,7 @@ class TripTile extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final Map<RideStatus, Color> statusColors = {
-      RideStatus.requested: Colors.grey,
-      RideStatus.driverAssigned: Colors.orange,
-      RideStatus.started: Colors.blue,
-      RideStatus.completed: Colors.green,
-    };
+    final Map<RideStatus, Color> statusColors = {RideStatus.requested: Colors.grey, RideStatus.driverAssigned: Colors.orange, RideStatus.started: Colors.blue, RideStatus.completed: Colors.green};
 
     final isActive = trip.status != RideStatus.completed;
     final shadowColor = isActive
@@ -53,6 +43,13 @@ class TripTile extends ConsumerWidget {
     final cardColor = isDark ? Colors.grey[800]! : Colors.white;
     final locationBoxColor = isDark ? Colors.grey[700]! : Colors.grey.shade200;
     final textColor = isDark ? Colors.white70 : Colors.black54;
+    final progress = switch (trip.status) {
+      RideStatus.requested => 0.2,
+      RideStatus.driverAssigned => 0.5,
+      RideStatus.started => 0.85,
+      RideStatus.completed => 1.0,
+      _ => 0,
+    };
 
     return Dismissible(
       key: ValueKey(trip.id),
@@ -82,47 +79,33 @@ class TripTile extends ConsumerWidget {
           decoration: BoxDecoration(
             color: cardColor,
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: shadowColor,
-                blurRadius: isActive ? 24 : 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            boxShadow: [BoxShadow(color: shadowColor, blurRadius: isActive ? 24 : 16, offset: const Offset(0, 8))],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    _locationBox(trip.pickup, Icons.my_location, locationBoxColor, textColor),
-                    _arrowIcon(isDark),
-                    _locationBox(trip.drop, Icons.location_on, locationBoxColor, textColor),
-                  ],
-                ),
+                child: Row(children: [_locationBox(trip.pickup, Icons.my_location, locationBoxColor, textColor), _arrowIcon(isDark), _locationBox(trip.drop, Icons.location_on, locationBoxColor, textColor)]),
               ),
+
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _fareChip(trip.fare, textColor),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 500),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: (statusColors[trip.status] ?? Colors.grey)
-                            .withOpacity(trip.status == RideStatus.completed ? 0.2 : 0.8),
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: RideStatusChip(status: trip.status),
-                    )
-                    ,
+                    _animatedFare(trip.fare),
+                    RideStatusChip(status: trip.status),
                   ],
                 ),
               ),
+
+               if (isActive)
+                Padding(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  child: DriverTracker(progress: progress.toDouble()),
+                ),
               const SizedBox(height: 12),
               Divider(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300, height: 1),
               Container(
@@ -133,37 +116,17 @@ class TripTile extends ConsumerWidget {
                       children: [
                         Icon(Icons.access_time, size: 16, color: isDark ? Colors.white54 : Colors.grey),
                         const SizedBox(width: 6),
-                        Text(
-                          _formatTime(trip.dateTime),
-                          style: TextStyle(color: textColor),
-                        ),
+                        Text(_formatTime(trip.dateTime), style: TextStyle(color: textColor)),
                       ],
                     ),
                     const Spacer(),
-                    if (trip.status != RideStatus.completed)
-                      _actionButton(
-                        icon: Icons.navigation,
-                        color: Colors.green,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const LiveBookingScreen(),
-                            ),
-                          );
-                        },
-                      ),
+
                     if (trip.status != RideStatus.completed)
                       _actionButton(
                         icon: Icons.edit,
                         color: themeColor,
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => AddTripScreen(editTrip: trip),
-                            ),
-                          );
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => AddTripScreen(editTrip: trip)));
                         },
                       ),
                     const SizedBox(width: 16),
@@ -183,26 +146,15 @@ class TripTile extends ConsumerWidget {
       ),
     );
   }
-  final Map<RideStatus, Color> statusColors = {
-    RideStatus.requested: Colors.grey,
-    RideStatus.driverAssigned: Colors.orange,
-    RideStatus.started: Colors.blue,
-    RideStatus.completed: Colors.green,
-  };
+
+  final Map<RideStatus, Color> statusColors = {RideStatus.requested: Colors.grey, RideStatus.driverAssigned: Colors.orange, RideStatus.started: Colors.blue, RideStatus.completed: Colors.green};
 
   Widget _deleteBackground() {
     return Container(
       alignment: Alignment.centerRight,
       padding: const EdgeInsets.only(right: 24),
-      decoration: BoxDecoration(
-        color: Colors.redAccent,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: const Icon(
-        Icons.delete,
-        color: Colors.white,
-        size: 28,
-      ),
+      decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(24)),
+      child: const Icon(Icons.delete, color: Colors.white, size: 28),
     );
   }
 
@@ -210,10 +162,7 @@ class TripTile extends ConsumerWidget {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(10),
-        ),
+        decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(10)),
         child: Row(
           children: [
             Icon(icon, size: 18, color: textColor),
@@ -223,10 +172,7 @@ class TripTile extends ConsumerWidget {
                 text,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w600, color: textColor),
               ),
             ),
           ],
@@ -239,14 +185,20 @@ class TripTile extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8),
       padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isDark ? Colors.grey[700] : Colors.white,
-      ),
-      child: Icon(
-        Icons.arrow_forward,
-        size: 18,
-        color: isDark ? Colors.white54 : Colors.grey,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: isDark ? Colors.grey[700] : Colors.white),
+      child: Icon(Icons.arrow_forward, size: 18, color: isDark ? Colors.white54 : Colors.grey),
+    );
+  }
+  Widget _animatedFare(double fare) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: fare),
+      duration: const Duration(milliseconds: 800),
+      builder: (_, value, __) => Text(
+        '₹${value.toInt()}',
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -256,21 +208,12 @@ class TripTile extends ConsumerWidget {
       duration: const Duration(milliseconds: 800),
       builder: (_, value, __) => Text(
         '₹${value.toInt()}',
-        style:   TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
-          color: textColor,
-        ),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor),
       ),
     );
   }
 
-
-  Widget _actionButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
+  Widget _actionButton({required IconData icon, required Color color, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
@@ -278,16 +221,5 @@ class TripTile extends ConsumerWidget {
     );
   }
 
-  String _formatTime(DateTime dt) =>
-      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  String _formatTime(DateTime dt) => '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
 }
-
-
-
-
-
-
-
-
-
-

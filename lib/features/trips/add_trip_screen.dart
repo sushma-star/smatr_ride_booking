@@ -74,7 +74,7 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
     if (widget.editTrip == null) {
       ref.read(tripProvider.notifier).addTrip(trip);
     } else {
-     ref.read(tripProvider.notifier).updateTrip(trip,RideStatus.completed as WidgetRef);
+     ref.read(tripProvider.notifier).updateTrip(trip);
     }
 
     Navigator.pop(context);

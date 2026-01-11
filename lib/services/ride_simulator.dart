@@ -4,15 +4,15 @@ class RideSimulator {
     var updatedTrip = trip.copyWith(status: RideStatus.requested);
     onUpdate(updatedTrip);
 
-    await Future.delayed(Duration(seconds: 2));
+    await Future.delayed(Duration(seconds: 5));
     updatedTrip = updatedTrip.copyWith(status: RideStatus.driverAssigned);
     onUpdate(updatedTrip);
 
-    await Future.delayed(Duration(seconds: 2));
+    await Future.delayed(Duration(seconds: 4));
     updatedTrip = updatedTrip.copyWith(status: RideStatus.started);
     onUpdate(updatedTrip);
 
-    await Future.delayed(Duration(seconds: 4));
+    await Future.delayed(Duration(seconds: 5));
     updatedTrip = updatedTrip.copyWith(status: RideStatus.completed);
     onUpdate(updatedTrip);
   }

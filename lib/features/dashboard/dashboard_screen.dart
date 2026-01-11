@@ -48,8 +48,8 @@ class DashboardScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add),
-        label: const Text('New Ride',),
+        icon: const Icon(Icons.add,color: Colors.white),
+        label: const Text('New Ride',style: TextStyle(color: Colors.white),),
         onPressed: () {
           Navigator.push(
             context,
