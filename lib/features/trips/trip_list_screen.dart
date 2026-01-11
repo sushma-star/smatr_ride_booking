@@ -1,3 +1,5 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../provider/trip_provider.dart';
@@ -10,14 +12,17 @@ class TripListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final trips = ref.watch(tripProvider);
     final sortedTrips = [...trips]..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+    final theme = Theme.of(context);
 
     if (sortedTrips.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(16),
+      return Padding(
+        padding: const EdgeInsets.all(16),
         child: Center(
           child: Text(
             'No trips booked yet',
-            style: TextStyle(color: Colors.grey),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.5),
+            ),
           ),
         ),
       );

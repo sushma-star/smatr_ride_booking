@@ -3,16 +3,17 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../models/trip_model.dart';
-
+import '../../core/colors.dart';
+ import '../../provider/theme_provider.dart';
 import '../../provider/budget_provider.dart';
 import '../../provider/dashboard_provider.dart';
+import '../../models/trip_model.dart';
+import '../../provider/trip_provider.dart';
+import '../../utils/csv_export.dart';
 import '../../widgets/monthly_budget_card.dart';
 import '../trips/add_trip_screen.dart';
 import '../trips/trip_list_screen.dart';
 import 'trip_chart.dart';
-
-
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -21,53 +22,34 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final data = ref.watch(dashboardProvider);
     final budget = ref.watch(budgetProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-     final trips = data['completedTrips'] as List<Trip>? ?? [];
+    final trips = data['completedTrips'] as List<Trip>? ?? [];
 
-     WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(budgetProvider.notifier).updateFromTrips(trips);
     });
 
     return Scaffold(
-      backgroundColor:Color(0xFFF3F3F3),
-
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF3F3F3),
-        foregroundColor: Colors.black,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
         title: const Text(
           'Book a Ride',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 22,
-            color:  Colors.black54,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w800),
         ),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              backgroundColor: Colors.grey,
-              child: Icon(Icons.person, color: Colors.white),
+        actions: [
+          IconButton(
+            icon: Icon(
+              isDark ? Icons.light_mode : Icons.dark_mode,
             ),
+            onPressed: () =>
+                ref.read(themeProvider.notifier).toggleTheme(),
           ),
         ],
       ),
-
-
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.blue,
-        elevation: 10,
-        icon: const Icon(Icons.add, color:  Colors.white),
-        label: const Text(
-          'New Ride',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.add),
+        label: const Text('New Ride',),
         onPressed: () {
           Navigator.push(
             context,
@@ -75,52 +57,35 @@ class DashboardScreen extends ConsumerWidget {
           );
         },
       ),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            _heroStats(data),
-
+            _heroStats(context, data),
+            const SizedBox(height: 12),
+            _glassCard(context, TripChart(trips: trips)),
+            if (budget.isLimitExceeded) _budgetGlass(context),
             const SizedBox(height: 10),
-            _glassCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Ride Analytics',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                        color: Colors.black54
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  TripChart(trips: trips),
-                ],
-              ),
-            ),
-
-
-            if (budget.isLimitExceeded) _budgetGlass(),
-
+            const MonthlyBudgetCard(),
             const SizedBox(height: 10),
-            MonthlyBudgetCard(),
+            Row(
+              children: [
+                const Text(
+                  'Recent Rides',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.download),
+                  onPressed: () {
+                    final trips = ref.read(tripProvider);
+                    exportTrips(context,trips);
+                  },
+                ),
 
-            const Text(
-              'Recent Rides',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color:  Colors.black54
-              ),
+              ],
             ),
-            const SizedBox(height: 5),
-
-
-
             const TripListScreen(),
           ],
         ),
@@ -128,113 +93,52 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _heroStats(Map data) {
+  Widget _heroStats(BuildContext context, Map data) {
     return Row(
       children: [
-        Expanded(
-          child: _statGlass(
-            title: 'Trips',
-            value: data['totalTrips'] ?? 0,
-            icon: Icons.directions_car,
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: _statGlass(
-            title: 'Spent',
-            value: (data['totalAmount'] as num?)?.toInt() ?? 0,
-            icon: Icons.currency_rupee,
-            isMoney: true,
-          ),
-        ),
+        _stat(context, 'Trips', data['totalTrips'] ?? 0),
+        const SizedBox(width: 12),
+        _stat(context, 'Spent', data['totalAmount']?.toInt() ?? 0,
+            money: true),
       ],
     );
   }
-  Widget _statGlass({
-    required String title,
-    required int value,
-    required IconData icon,
-    bool isMoney = false,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child:
-      Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment. center,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: Colors.blue, size: 20),
-              ),
-              const SizedBox(width: 20),
 
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.black54,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-
-
-
-          const SizedBox(height: 4),
-
-          TweenAnimationBuilder<int>(
-            tween: IntTween(begin: 0, end: value),
-            duration: const Duration(milliseconds: 800),
-            builder: (_, v, __) => Text(
-              isMoney ? '₹$v' : '$v',
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: Colors.black87,
-              ),
+  Widget _stat(BuildContext context, String t, int v,
+      {bool money = false}) {
+    final card = Theme.of(context).cardColor;
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: card,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          children: [
+            Text(t),
+            const SizedBox(height: 6),
+            Text(
+              money ? '₹$v' : '$v',
+              style:
+              const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-
-
-
-  Widget _glassCard({required Widget child}) {
+  Widget _glassCard(BuildContext context, Widget child) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
+      borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
         child: Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white ,
-            borderRadius: BorderRadius.circular(26),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.3),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 20,
-                offset: const Offset(0, 12),
-              ),
-            ],
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(24),
           ),
           child: child,
         ),
@@ -242,18 +146,14 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _budgetGlass() {
+  Widget _budgetGlass(BuildContext context) {
     return _glassCard(
-      child: Row(
+      context,
+      Row(
         children: const [
-          Icon(Icons.warning_rounded, color: Colors.yellow),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'You are over your monthly ride budget',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
+          Icon(Icons.warning, color: Colors.orange),
+          SizedBox(width: 10),
+          Expanded(child: Text('Monthly budget exceeded')),
         ],
       ),
     );

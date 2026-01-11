@@ -1,8 +1,7 @@
-import 'package:fl_chart/fl_chart.dart';
+ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../../models/ride_type.dart';
 import '../../models/trip_model.dart';
-
 
 class TripChart extends StatelessWidget {
   final List<Trip> trips;
@@ -12,19 +11,20 @@ class TripChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (trips.isEmpty) return _emptyState();
+    final theme = Theme.of(context);
 
-    final Map<RideType, int> data = {};
+    if (trips.isEmpty) return _emptyState(theme);
+
+     final Map<RideType, int> data = {};
     for (var t in trips) {
       data[t.rideType] = (data[t.rideType] ?? 0) + 1;
     }
-
     final total = data.values.fold<int>(0, (a, b) => a + b);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.lightBlue,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -32,22 +32,20 @@ class TripChart extends StatelessWidget {
         children: [
            Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text(
                 'Trips by Ride Type',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
+                  color: theme.textTheme.titleMedium?.color,
                 ),
               ),
               Icon(Icons.pie_chart, color: primaryYellow),
             ],
           ),
-
           const SizedBox(height: 16),
 
-           Row(
+          Row(
             children: [
                Expanded(
                 flex: 3,
@@ -56,27 +54,26 @@ class TripChart extends StatelessWidget {
                   child: SizedBox(
                     height: 140,
                     child: PieChart(
-                        PieChartData(
-                          sectionsSpace: 2,
-                          centerSpaceRadius: 38,
-                          sections: data.entries.map((e) {
-                            final percent =
-                            ((e.value / total) * 100).toStringAsFixed(0);
+                      PieChartData(
+                        sectionsSpace: 2,
+                        centerSpaceRadius: 38,
+                        sections: data.entries.map((e) {
+                          final percent =
+                          ((e.value / total) * 100).toStringAsFixed(0);
 
-                            return PieChartSectionData(
-                              value: e.value.toDouble(),
-                              title: '$percent%',
-                              radius: 46,
-                              titleStyle: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
-                                fontSize: 9,
-                              ),
-                              color: _rideColor(e.key),
-                            );
-                          }).toList(),
-                        )
-
+                          return PieChartSectionData(
+                            value: e.value.toDouble(),
+                            title: '$percent%',
+                            radius: 46,
+                            titleStyle: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: theme.textTheme.bodySmall?.color,
+                              fontSize: 9,
+                            ),
+                            color: _rideColor(e.key, theme),
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ),
                 ),
@@ -93,7 +90,8 @@ class TripChart extends StatelessWidget {
                       child: _legendItem(
                         label: e.key.label,
                         count: e.value,
-                        color: _rideColor(e.key),
+                        color: _rideColor(e.key, theme),
+                        theme: theme,
                       ),
                     );
                   }).toList(),
@@ -106,41 +104,36 @@ class TripChart extends StatelessWidget {
     );
   }
 
-  Widget _legendItem({
+   Widget _legendItem({
     required String label,
     required int count,
     required Color color,
+    required ThemeData theme,
   }) {
     return Row(
       children: [
-
-
         const SizedBox(width: 6),
-
-         Icon(
+        Icon(
           iconFromLabel(label),
           size: 14,
           color: color,
         ),
-
         const SizedBox(width: 6),
-
-         Expanded(
+        Expanded(
           child: Text(
             label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
+            style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w500,
+              color: theme.textTheme.bodyMedium?.color,
+              fontSize: 12,
             ),
           ),
         ),
-
-         Text(
+        Text(
           '$count',
-          style: const TextStyle(
-            color: Colors.white,
+          style: theme.textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w700,
+            color: theme.textTheme.bodyMedium?.color,
             fontSize: 12,
           ),
         ),
@@ -163,14 +156,12 @@ class TripChart extends StatelessWidget {
     }
   }
 
-
-
-   Color _rideColor(RideType type) {
+   Color _rideColor(RideType type, ThemeData theme) {
     switch (type) {
       case RideType.mini:
         return primaryYellow;
       case RideType.sedan:
-        return Colors.purple;
+        return Colors.purpleAccent;
       case RideType.auto:
         return Colors.redAccent.withOpacity(0.75);
       case RideType.bike:
@@ -178,22 +169,20 @@ class TripChart extends StatelessWidget {
     }
   }
 
-   Widget _emptyState() {
+   Widget _emptyState(ThemeData theme) {
     return Container(
       height: 180,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: theme.dividerColor.withOpacity(0.05),
         borderRadius: BorderRadius.circular(24),
       ),
-      child: const Text(
+      child: Text(
         'No completed trips',
-        style: TextStyle(color: Colors.grey),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
+        ),
       ),
     );
   }
 }
-
-
-
-

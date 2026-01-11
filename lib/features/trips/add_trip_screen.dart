@@ -1,17 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
-
-import '../../models/trip_model.dart';
-import '../../models/ride_type.dart';
-
-import 'package:intl/intl.dart';
-
-import '../../provider/trip_provider.dart';
-
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:smart_ridebooking/core/colors.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 
@@ -42,7 +32,7 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
   bool _isOverLimit = false;
   bool _isNearLimit = false;
 
-  static const Color themeColor = Colors.blue;
+  static const Color themeColor = AppColors.primary;
 
   @override
   void initState() {
@@ -81,24 +71,32 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
       dateTime: selectedDateTime,
     );
 
-    widget.editTrip == null
-        ? ref.read(tripProvider.notifier).addTrip(trip)
-        : ref.read(tripProvider.notifier).updateTrip(trip,RideStatus.completed as WidgetRef);
+    if (widget.editTrip == null) {
+      ref.read(tripProvider.notifier).addTrip(trip);
+    } else {
+     ref.read(tripProvider.notifier).updateTrip(trip,RideStatus.completed as WidgetRef);
+    }
 
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final budget = ref.watch(budgetProvider);
     final remaining = budget.remainingFor(rideType);
 
+    final cardColor = isDark ? Colors.grey[800]! : AppColors.cardLight;
+    final inputFill = isDark ? Colors.grey[700]! : Colors.grey.shade100;
+    final textColor = isDark ? Colors.white70 : Colors.black87;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F3F3),
+      backgroundColor: isDark ? AppColors.black : Colors.grey.shade100,
       appBar: AppBar(
         title: Text(widget.editTrip == null ? 'Book Ride' : 'Edit Ride'),
-        backgroundColor: const Color(0xFFF3F3F3),
-        foregroundColor: Colors.black,
+        backgroundColor: isDark ? AppColors.black: Colors.grey.shade100,
+        foregroundColor: isDark ? AppColors.cardLight: AppColors.black,
         elevation: 0,
         centerTitle: true,
       ),
@@ -109,16 +107,16 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
             padding: const EdgeInsets.fromLTRB(25, 20, 25, 16),
             child: Column(
               children: [
-                _routeSection(),
+                _routeSection(cardColor, inputFill, textColor),
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        _rideTypeSection(),
+                        _rideTypeSection(cardColor, inputFill, textColor),
                         const SizedBox(height: 16),
-                        _fareSection(remaining),
+                        _fareSection(remaining, cardColor, textColor),
                         const SizedBox(height: 16),
-                        _dateTimeSection(),
+                        _dateTimeSection(cardColor, textColor),
                         const SizedBox(height: 100),
                       ],
                     ),
@@ -135,8 +133,7 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
           child: ElevatedButton(
             onPressed: _isOverLimit ? null : _submit,
             style: ElevatedButton.styleFrom(
-              backgroundColor:
-              _isOverLimit ? Colors.grey : themeColor,
+              backgroundColor: _isOverLimit ? Colors.grey : themeColor,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -147,7 +144,7 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: AppColors.cardLight,
               ),
             ),
           ),
@@ -156,38 +153,41 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
     );
   }
 
-
-  Widget _routeSection() {
+  Widget _routeSection(Color cardColor, Color inputFill, Color textColor) {
     return _cardContainer(
+      cardColor: cardColor,
       child: Column(
         children: [
           _routeField(
-            controller: pickupController,
-            hint: 'Pickup Location',
-            icon: Icons.trip_origin,
-            color: Colors.green,
-          ),
+              controller: pickupController,
+              hint: 'Pickup Location',
+              icon: Icons.trip_origin,
+              color: Colors.green,
+              fillColor: inputFill,
+              textColor: textColor),
           const SizedBox(height: 12),
           _routeField(
-            controller: dropController,
-            hint: 'Drop Location',
-            icon: Icons.location_on,
-            color: Colors.red,
-          ),
+              controller: dropController,
+              hint: 'Drop Location',
+              icon: Icons.location_on,
+              color: Colors.red,
+              fillColor: inputFill,
+              textColor: textColor),
         ],
       ),
     );
   }
 
-  Widget _rideTypeSection() {
+  Widget _rideTypeSection(Color cardColor, Color inputFill, Color textColor) {
     return _cardContainer(
+      cardColor: cardColor,
       child: DropdownButtonFormField<RideType>(
         value: rideType,
-        decoration: _inputDecoration('Ride Type'),
+        decoration: _inputDecoration('Ride Type', fillColor: inputFill),
         items: RideType.values.map((type) {
           return DropdownMenuItem(
             value: type,
-            child: Text(type.label),
+            child: Text(type.label, style: TextStyle(color: textColor)),
           );
         }).toList(),
         onChanged: (v) {
@@ -198,15 +198,17 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
     );
   }
 
-  Widget _fareSection(double remaining) {
+  Widget _fareSection(double remaining, Color cardColor, Color textColor) {
     return _cardContainer(
+      cardColor: cardColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextFormField(
             controller: fareController,
             keyboardType: TextInputType.number,
-            decoration: _inputDecoration('Estimated Fare').copyWith(
+            decoration: _inputDecoration('Estimated Fare', fillColor: cardColor)
+                .copyWith(
               errorText: _isOverLimit
                   ? 'Exceeds remaining budget ₹${remaining.toInt()}'
                   : null,
@@ -220,6 +222,7 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
               if (_isOverLimit) return 'Over monthly budget';
               return null;
             },
+            style: TextStyle(color: textColor),
           ),
           const SizedBox(height: 10),
           Row(
@@ -258,19 +261,21 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
           const SizedBox(height: 4),
           Text(
             'Remaining: ₹${remaining.toInt()}',
-            style: const TextStyle(fontSize: 12, color: Colors.black54),
+            style: TextStyle(fontSize: 12, color: textColor.withOpacity(0.7)),
           ),
         ],
       ),
     );
   }
 
-  Widget _dateTimeSection() {
+  Widget _dateTimeSection(Color cardColor, Color textColor) {
     return _cardContainer(
+      cardColor: cardColor,
       child: ListTile(
-        leading: const Icon(Icons.schedule),
+        leading: Icon(Icons.schedule, color: textColor),
         title: Text(
           DateFormat('dd MMM yyyy • hh:mm a').format(selectedDateTime),
+          style: TextStyle(color: textColor),
         ),
         trailing: TextButton(
           child: const Text('Change'),
@@ -304,13 +309,12 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
     );
   }
 
-
-  Widget _cardContainer({required Widget child}) {
+  Widget _cardContainer({required Widget child, required Color cardColor}) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
       ),
       child: child,
@@ -322,6 +326,8 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
     required String hint,
     required IconData icon,
     required Color color,
+    required Color fillColor,
+    required Color textColor,
   }) {
     return TextFormField(
       controller: controller,
@@ -329,21 +335,22 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
         hintText: hint,
         prefixIcon: Icon(icon, color: color),
         filled: true,
-        fillColor: Colors.grey.shade100,
+        fillColor: fillColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
       ),
+      style: TextStyle(color: textColor),
       validator: (v) => v == null || v.isEmpty ? 'Required field' : null,
     );
   }
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, {Color? fillColor}) {
     return InputDecoration(
       labelText: label,
       filled: true,
-      fillColor: Colors.grey.shade100,
+      fillColor: fillColor ?? Colors.grey.shade100,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide.none,
@@ -351,7 +358,3 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
     );
   }
 }
-
-
-
-

@@ -8,9 +8,10 @@ import 'models/trip_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
 
+  await Hive.initFlutter();
   await HiveService.init();
   await Hive.openBox<Trip>('trips');
-   runApp(  ProviderScope(child: MyApp()));
+
+  runApp(const ProviderScope(child: MyApp()));
 }
