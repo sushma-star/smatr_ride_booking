@@ -1,10 +1,7 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
 
 part of 'ride_type.dart';
 
-// **************************************************************************
-// TypeAdapterGenerator
-// **************************************************************************
+
 
 class RideTypeAdapter extends TypeAdapter<RideType> {
   @override

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/trip_model.dart';
  import '../services/hie_services.dart';
 import '../services/ride_simulator.dart';
+import 'budget_provider.dart';
 
 final tripProvider = StateNotifierProvider<TripNotifier, List<Trip>>(
       (ref) => TripNotifier(),
@@ -24,13 +25,22 @@ class TripNotifier extends StateNotifier<List<Trip>> {
       ];
     });
   }
-  void updateTrip(Trip updatedTrip) {
-    state = state.map((trip) {
-      return trip.id == updatedTrip.id ? updatedTrip : trip;
+  void updateTrip(Trip updatedTrip, WidgetRef ref) {
+    final oldTrip = state.firstWhere((t) => t.id == updatedTrip.id);
+
+    if (oldTrip.status != RideStatus.completed &&
+        updatedTrip.status == RideStatus.completed) {
+      ref.read(budgetProvider.notifier)
+          .addExpense(updatedTrip.rideType, updatedTrip.fare);
+    }
+
+    state = state.map((t) {
+      return t.id == updatedTrip.id ? updatedTrip : t;
     }).toList();
   }
 
-   void updateStatus(String id, RideStatus status) {
+
+  void updateStatus(String id, RideStatus status) {
     state = state.map((trip) {
       if (trip.id == id) {
         return trip.copyWith(status: status);

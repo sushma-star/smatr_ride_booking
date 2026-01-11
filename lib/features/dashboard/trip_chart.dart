@@ -54,7 +54,7 @@ class TripChart extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(2),
                   child: SizedBox(
-                    height: 170,
+                    height: 140,
                     child: PieChart(
                         PieChartData(
                           sectionsSpace: 2,

@@ -1,42 +1,48 @@
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/trip_model.dart';
-import '../../provider/trip_provider.dart';
- import '../trips/add_trip_screen.dart';
+
+import '../../provider/budget_provider.dart';
+import '../../provider/dashboard_provider.dart';
+import '../../widgets/monthly_budget_card.dart';
+import '../trips/add_trip_screen.dart';
 import '../trips/trip_list_screen.dart';
 import 'trip_chart.dart';
+
+
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-     final trips = ref.watch(tripProvider);
+    final data = ref.watch(dashboardProvider);
+    final budget = ref.watch(budgetProvider);
 
-     final completedTrips =
-    trips.where((t) => t.status == RideStatus.completed).toList();
+     final trips = data['completedTrips'] as List<Trip>? ?? [];
 
-    final totalTrips = trips.length;
-
-    final totalAmount = completedTrips.fold<int>(
-      0,
-          (sum, t) => sum + t.fare.toInt(),
-    );
+     WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(budgetProvider.notifier).updateFromTrips(trips);
+    });
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F3F3),
+      backgroundColor:Color(0xFFF3F3F3),
 
       appBar: AppBar(
         backgroundColor: const Color(0xFFF3F3F3),
+        foregroundColor: Colors.black,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         title: const Text(
           'Book a Ride',
           style: TextStyle(
             fontWeight: FontWeight.w800,
             fontSize: 22,
-            color: Colors.black54,
+            color:  Colors.black54,
           ),
         ),
         actions: const [
@@ -50,12 +56,17 @@ class DashboardScreen extends ConsumerWidget {
         ],
       ),
 
+
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.blue,
-        icon: const Icon(Icons.add, color: Colors.white),
+        elevation: 10,
+        icon: const Icon(Icons.add, color:  Colors.white),
         label: const Text(
           'New Ride',
-          style: TextStyle(fontWeight: FontWeight.w600,color: Colors.white),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         onPressed: () {
           Navigator.push(
@@ -70,13 +81,10 @@ class DashboardScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _heroStats(
-              totalTrips: totalTrips,
-              totalAmount: totalAmount,
-            ),
 
-            const SizedBox(height: 28),
+            _heroStats(data),
 
+            const SizedBox(height: 10),
             _glassCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,29 +92,35 @@ class DashboardScreen extends ConsumerWidget {
                   const Text(
                     'Ride Analytics',
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
-                      color: Colors.black54,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        color: Colors.black54
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  TripChart(trips: completedTrips),
+                  const SizedBox(height: 7),
+                  TripChart(trips: trips),
                 ],
               ),
             ),
 
-            const SizedBox(height: 24),
+
+            if (budget.isLimitExceeded) _budgetGlass(),
+
+            const SizedBox(height: 10),
+            MonthlyBudgetCard(),
 
             const Text(
               'Recent Rides',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: Colors.black54,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color:  Colors.black54
               ),
             ),
+            const SizedBox(height: 5),
 
-            const SizedBox(height: 8),
+
+
             const TripListScreen(),
           ],
         ),
@@ -114,17 +128,13 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-
-  Widget _heroStats({
-    required int totalTrips,
-    required int totalAmount,
-  }) {
+  Widget _heroStats(Map data) {
     return Row(
       children: [
         Expanded(
           child: _statGlass(
             title: 'Trips',
-            value: totalTrips,
+            value: data['totalTrips'] ?? 0,
             icon: Icons.directions_car,
           ),
         ),
@@ -132,7 +142,7 @@ class DashboardScreen extends ConsumerWidget {
         Expanded(
           child: _statGlass(
             title: 'Spent',
-            value: totalAmount,
+            value: (data['totalAmount'] as num?)?.toInt() ?? 0,
             icon: Icons.currency_rupee,
             isMoney: true,
           ),
@@ -140,7 +150,6 @@ class DashboardScreen extends ConsumerWidget {
       ],
     );
   }
-
   Widget _statGlass({
     required String title,
     required int value,
@@ -148,30 +157,44 @@ class DashboardScreen extends ConsumerWidget {
     bool isMoney = false,
   }) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: Column(
+      child:
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment. center,
         children: [
           Row(
             children: [
-              CircleAvatar(
-                backgroundColor: Colors.blue.withOpacity(0.12),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
                 child: Icon(icon, color: Colors.blue, size: 20),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 20),
+
               Text(
                 title,
                 style: const TextStyle(
-                  fontWeight: FontWeight.w600,
                   color: Colors.black54,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+
+
+
+          const SizedBox(height: 4),
+
           TweenAnimationBuilder<int>(
             tween: IntTween(begin: 0, end: value),
             duration: const Duration(milliseconds: 800),
@@ -180,6 +203,7 @@ class DashboardScreen extends ConsumerWidget {
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
+                color: Colors.black87,
               ),
             ),
           ),
@@ -187,6 +211,9 @@ class DashboardScreen extends ConsumerWidget {
       ),
     );
   }
+
+
+
 
   Widget _glassCard({required Widget child}) {
     return ClipRRect(
@@ -196,8 +223,11 @@ class DashboardScreen extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Colors.white ,
             borderRadius: BorderRadius.circular(26),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.3),
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.08),
@@ -208,6 +238,23 @@ class DashboardScreen extends ConsumerWidget {
           ),
           child: child,
         ),
+      ),
+    );
+  }
+
+  Widget _budgetGlass() {
+    return _glassCard(
+      child: Row(
+        children: const [
+          Icon(Icons.warning_rounded, color: Colors.yellow),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'You are over your monthly ride budget',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
       ),
     );
   }

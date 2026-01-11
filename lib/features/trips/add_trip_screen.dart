@@ -10,6 +10,15 @@ import 'package:intl/intl.dart';
 
 import '../../provider/trip_provider.dart';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+import 'package:intl/intl.dart';
+
+import '../../models/trip_model.dart';
+import '../../models/ride_type.dart';
+import '../../provider/trip_provider.dart';
+import '../../provider/budget_provider.dart';
 
 class AddTripScreen extends ConsumerStatefulWidget {
   final Trip? editTrip;
@@ -29,6 +38,10 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
   RideType rideType = RideType.mini;
   DateTime selectedDateTime = DateTime.now();
 
+  double _enteredFare = 0;
+  bool _isOverLimit = false;
+  bool _isNearLimit = false;
+
   static const Color themeColor = Colors.blue;
 
   @override
@@ -40,7 +53,19 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
       fareController.text = widget.editTrip!.fare.toString();
       rideType = widget.editTrip!.rideType;
       selectedDateTime = widget.editTrip!.dateTime;
+      _enteredFare = widget.editTrip!.fare;
     }
+  }
+
+  void _recalculateBudget() {
+    final budget = ref.read(budgetProvider);
+    final remaining = budget.remainingFor(rideType);
+
+    setState(() {
+      _isOverLimit = _enteredFare > remaining;
+      _isNearLimit =
+          _enteredFare > remaining * 0.8 && _enteredFare <= remaining;
+    });
   }
 
   void _submit() {
@@ -51,30 +76,31 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
       pickup: pickupController.text.trim(),
       drop: dropController.text.trim(),
       rideType: rideType,
-      fare: double.parse(fareController.text),
-      status: widget.editTrip?.status ?? RideStatus.requested,
+      fare: _enteredFare,
+      status: widget.editTrip?.status ?? RideStatus.completed,
       dateTime: selectedDateTime,
     );
 
     widget.editTrip == null
         ? ref.read(tripProvider.notifier).addTrip(trip)
-        : ref.read(tripProvider.notifier).updateTrip(trip);
+        : ref.read(tripProvider.notifier).updateTrip(trip,RideStatus.completed as WidgetRef);
 
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final budget = ref.watch(budgetProvider);
+    final remaining = budget.remainingFor(rideType);
+
     return Scaffold(
-      backgroundColor: Color(0xFFF3F3F3),
+      backgroundColor: const Color(0xFFF3F3F3),
       appBar: AppBar(
         title: Text(widget.editTrip == null ? 'Book Ride' : 'Edit Ride'),
-        elevation: 0,
-        backgroundColor:Color(0xFFF3F3F3),
-        centerTitle: true,
+        backgroundColor: const Color(0xFFF3F3F3),
         foregroundColor: Colors.black,
-
-
+        elevation: 0,
+        centerTitle: true,
       ),
       body: SafeArea(
         child: Form(
@@ -84,14 +110,13 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
             child: Column(
               children: [
                 _routeSection(),
-
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
                         _rideTypeSection(),
                         const SizedBox(height: 16),
-                        _fareSection(),
+                        _fareSection(remaining),
                         const SizedBox(height: 16),
                         _dateTimeSection(),
                         const SizedBox(height: 100),
@@ -104,15 +129,14 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
           ),
         ),
       ),
-
       bottomNavigationBar: SafeArea(
         child: Container(
           padding: const EdgeInsets.all(16),
-          color: Colors.grey.shade50,
           child: ElevatedButton(
-            onPressed: _submit,
+            onPressed: _isOverLimit ? null : _submit,
             style: ElevatedButton.styleFrom(
-              backgroundColor: themeColor,
+              backgroundColor:
+              _isOverLimit ? Colors.grey : themeColor,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -155,56 +179,88 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
     );
   }
 
-  IconData rideTypeIcon(RideType type) {
-    switch (type) {
-      case RideType.bike:
-        return Icons.two_wheeler;
-      case RideType.auto:
-        return Icons.local_taxi;
-      case RideType.mini:
-        return Icons.directions_car;
-      case RideType.sedan:
-        return Icons.airport_shuttle;
-    }
-  }
-
   Widget _rideTypeSection() {
     return _cardContainer(
       child: DropdownButtonFormField<RideType>(
-        dropdownColor: Colors.white,
         value: rideType,
-        decoration: _inputDecoration('Ride Type', Icons.directions_car),
+        decoration: _inputDecoration('Ride Type'),
         items: RideType.values.map((type) {
-          return DropdownMenuItem<RideType>(
+          return DropdownMenuItem(
             value: type,
-            child: Row(
-              children: [
-                Icon(
-                  rideTypeIcon(type),
-                  size: 20,
-                  color: Colors.grey.shade700,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  type.label,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
+            child: Text(type.label),
           );
         }).toList(),
-        onChanged: (v) => setState(() => rideType = v!),
+        onChanged: (v) {
+          rideType = v!;
+          _recalculateBudget();
+        },
       ),
     );
   }
 
-  Widget _fareSection() {
+  Widget _fareSection(double remaining) {
     return _cardContainer(
-      child: TextFormField(
-        controller: fareController,
-        keyboardType: TextInputType.number,
-        decoration: _inputDecoration('Estimated Fare', Icons.currency_rupee),
-        validator: (v) => v == null || v.isEmpty ? 'Enter fare amount' : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextFormField(
+            controller: fareController,
+            keyboardType: TextInputType.number,
+            decoration: _inputDecoration('Estimated Fare').copyWith(
+              errorText: _isOverLimit
+                  ? 'Exceeds remaining budget ₹${remaining.toInt()}'
+                  : null,
+            ),
+            onChanged: (v) {
+              _enteredFare = double.tryParse(v) ?? 0;
+              _recalculateBudget();
+            },
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'Enter fare amount';
+              if (_isOverLimit) return 'Over monthly budget';
+              return null;
+            },
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Icon(
+                _isOverLimit
+                    ? Icons.error
+                    : _isNearLimit
+                    ? Icons.warning
+                    : Icons.check_circle,
+                color: _isOverLimit
+                    ? Colors.red
+                    : _isNearLimit
+                    ? Colors.orange
+                    : Colors.green,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _isOverLimit
+                    ? 'Budget exceeded'
+                    : _isNearLimit
+                    ? 'Approaching budget limit'
+                    : 'Within budget',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: _isOverLimit
+                      ? Colors.red
+                      : _isNearLimit
+                      ? Colors.orange
+                      : Colors.green,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Remaining: ₹${remaining.toInt()}',
+            style: const TextStyle(fontSize: 12, color: Colors.black54),
+          ),
+        ],
       ),
     );
   }
@@ -212,11 +268,9 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
   Widget _dateTimeSection() {
     return _cardContainer(
       child: ListTile(
-        contentPadding: EdgeInsets.zero,
         leading: const Icon(Icons.schedule),
         title: Text(
           DateFormat('dd MMM yyyy • hh:mm a').format(selectedDateTime),
-          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         trailing: TextButton(
           child: const Text('Change'),
@@ -258,13 +312,6 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
       ),
       child: child,
     );
@@ -292,10 +339,10 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon) {
+  InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-       filled: true,
+      filled: true,
       fillColor: Colors.grey.shade100,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -304,6 +351,7 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
     );
   }
 }
+
 
 
 
