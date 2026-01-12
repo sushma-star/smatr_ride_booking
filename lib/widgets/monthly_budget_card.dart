@@ -115,6 +115,7 @@ class MonthlyBudgetCard extends ConsumerWidget {
 
           const Divider(height: 20, thickness: 1),
 
+
           Text(
             (budget.totalLimit - budget.totalSpent).toInt() <= 0
                 ? '⚠ Budget Exceeded!'

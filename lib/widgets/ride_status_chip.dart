@@ -12,6 +12,7 @@ class RideStatusChip extends StatelessWidget {
       RideStatus.driverAssigned: Colors.orange,
     };
 
+
     final Map<RideStatus, IconData> statusIcons = {
       RideStatus.completed: Icons.check_circle,
       RideStatus.started: Icons.play_circle_fill,

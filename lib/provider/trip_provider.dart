@@ -59,6 +59,7 @@ class TripNotifier extends StateNotifier<List<Trip>> {
     }
   }
 
+
    Future<void> updateStatus(String id, RideStatus status) async {
     final oldTrip = state.firstWhere((t) => t.id == id);
     final updatedTrip = oldTrip.copyWith(status: status);

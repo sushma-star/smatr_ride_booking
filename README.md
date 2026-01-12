@@ -1,6 +1,8 @@
 # Smart Ride Booking & Trip Management App
 
-A Flutter application that simulates a real-time ride booking system (similar to Ola/Uber) with offline storage, live status updates, analytics, and spending limits.
+A Flutter application that simulates a real-time ride booking system
+(similar to Ola/Uber) with offline storage, live status updates, analytics,
+and spending limits.
 
 ---
 
@@ -51,22 +53,74 @@ A Flutter application that simulates a real-time ride booking system (similar to
 
 ---
 
-##  Architecture
-Feature-first clean architecture with clear separation of concerns:
 
-- UI (screens & widgets)
-- State management using Riverpod StateNotifier
-- Models for business entities
-- Services for Hive storage and ride simulation
+## 🧱 Architecture Overview
+
+The project follows a feature-first clean architecture with clear separation of concerns.
+
+lib/
+models → Trip, RideType  
+provider → Riverpod state management  
+services → Hive storage & ride simulation  
+screens → Dashboard, Trips  
+widgets → Reusable UI components  
+utils → Helpers (CSV export, constants)
 
 ---
 
-## ⚡ Setup / Installation
+## 🧠 State Management
 
-1. Clone the repository (if not already on your machine):
-   ```bash
+This application uses Riverpod with StateNotifier for predictable and reactive state management.
+
+The main providers are:
+- tripProvider – manages ride data (add, update, delete, status changes)
+- budgetProvider – derived provider that recalculates monthly spending from trips
+- dashboardProvider – aggregates analytics (total trips, total spend)
+- themeProvider – handles light and dark theme switching
+
+All UI widgets rebuild automatically when provider state changes.
+
+---
+
+## ⏱ Real-Time Ride Simulation Approach
+
+Real-time behavior is simulated using a RideSimulator service.
+
+When a ride is created, the simulator automatically progresses the ride through states using async timers:
+Requested → Driver Assigned → Started → Completed.
+
+Each update is stored in Hive, reflected instantly in the UI via Riverpod, and shown as an in-app notification.
+
+This approach mimics real-world ride booking applications and works fully offline.
+
+---
+
+## 🧪 Test Coverage
+
+Unit tests cover the core business logic of the application, including:
+- Trip provider logic
+- Budget calculations
+- Monthly spending limits
+- Budget exceeded scenarios
+
+Tests ensure accurate recalculation on add, delete, and status updates.
+
+---
+
+---
+## ⚡ Setup & Installation
+
+1. Clone the repository:
    git clone https://github.com/sushma-star/smatr_ride_booking.git
    cd smatr_ride_booking
+
+2. Install dependencies:
+   flutter pub get
+
+3. Run the application:
+   flutter run
+
+
 ## Screenshots
  
 

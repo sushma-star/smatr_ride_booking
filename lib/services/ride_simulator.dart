@@ -8,7 +8,7 @@ class RideSimulator {
     updatedTrip = updatedTrip.copyWith(status: RideStatus.driverAssigned);
     onUpdate(updatedTrip);
 
-    await Future.delayed(Duration(seconds: 4));
+    await Future.delayed(Duration(seconds: 5));
     updatedTrip = updatedTrip.copyWith(status: RideStatus.started);
     onUpdate(updatedTrip);
 
