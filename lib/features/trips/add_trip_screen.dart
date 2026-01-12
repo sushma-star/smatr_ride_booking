@@ -114,7 +114,7 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
                       children: [
                         _rideTypeSection(cardColor, inputFill, textColor),
                         const SizedBox(height: 16),
-                        _fareSection(remaining, cardColor, textColor),
+                        _fareSection(remaining, cardColor, textColor,inputFill),
                         const SizedBox(height: 16),
                         _dateTimeSection(cardColor, textColor),
                         const SizedBox(height: 100),
@@ -198,7 +198,7 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
     );
   }
 
-  Widget _fareSection(double remaining, Color cardColor, Color textColor) {
+  Widget _fareSection(double remaining, Color cardColor, Color textColor,Color inputFill) {
     return _cardContainer(
       cardColor: cardColor,
       child: Column(
@@ -207,7 +207,7 @@ class _AddTripScreenState extends ConsumerState<AddTripScreen> {
           TextFormField(
             controller: fareController,
             keyboardType: TextInputType.number,
-            decoration: _inputDecoration('Estimated Fare', fillColor: cardColor)
+            decoration: _inputDecoration('Estimated Fare', fillColor: inputFill)
                 .copyWith(
               errorText: _isOverLimit
                   ? 'Exceeds remaining budget ₹${remaining.toInt()}'

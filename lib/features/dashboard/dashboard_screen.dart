@@ -17,6 +17,36 @@ import 'trip_chart.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
+  void showTopSnackBar(BuildContext context, String message) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        // top: MediaQuery.of(context).padding.top + kToolbarHeight,
+        top: 60,
+        left: 16,
+        right: 16,
+        child: Material(
+          color: Colors.white,
+          elevation: 4,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay?.insert(overlayEntry);
+
+     Future.delayed(const Duration(seconds: 2), () => overlayEntry.remove());
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,8 +57,14 @@ class DashboardScreen extends ConsumerWidget {
     final trips = data['completedTrips'] as List<Trip>? ?? [];
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(budgetProvider.notifier).updateFromTrips(trips);
+      final notifier = ref.read(tripProvider.notifier);
+
+      notifier.showMessage = (msg) {
+        showTopSnackBar(context, msg);
+      };
     });
+
+
 
     return Scaffold(
       appBar: AppBar(

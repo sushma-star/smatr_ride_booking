@@ -22,7 +22,7 @@ class TripChart extends StatelessWidget {
     final total = data.values.fold<int>(0, (a, b) => a + b);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(7),
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
