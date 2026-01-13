@@ -126,6 +126,10 @@ Tests ensure accurate recalculation on add, delete, and status updates.
 
 ### Light Theme
 
+## 🎥 App Demo
+ Full Demo (MP4):  
+https://github.com/sushma-star/smatr_ride_booking/blob/main/assets/screenshots/light/comple_video.mp4
+
 **Empty Dashboard**  
 ![Empty Dashboard](assets/screenshots/light/light_empty_dashboard.png)
 
