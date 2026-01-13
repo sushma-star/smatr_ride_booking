@@ -122,12 +122,15 @@ Tests ensure accurate recalculation on add, delete, and status updates.
 
 
 ## Screenshots
- 
+
 
 ### Light Theme
 
 **Empty Dashboard**  
 ![Empty Dashboard](assets/screenshots/light/light_empty_dashboard.png)
+
+**full Dashboard**  
+![full Dashboard](assets/screenshots/light/light_dashboard.png)
 
 **Ride Creation**  
 ![Ride Creation](assets/screenshots/light/light_ride_creation.png)
