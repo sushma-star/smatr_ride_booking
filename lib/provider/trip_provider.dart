@@ -44,7 +44,6 @@ class TripNotifier extends StateNotifier<List<Trip>> {
       _notifyStatus(updatedTrip.status);
     });
   }
-
    Future<void> updateTrip(Trip updatedTrip) async {
     await HiveService.tripBox().put(updatedTrip.id, updatedTrip);
 
@@ -58,8 +57,6 @@ class TripNotifier extends StateNotifier<List<Trip>> {
       ];
     }
   }
-
-
    Future<void> updateStatus(String id, RideStatus status) async {
     final oldTrip = state.firstWhere((t) => t.id == id);
     final updatedTrip = oldTrip.copyWith(status: status);
@@ -76,14 +73,12 @@ class TripNotifier extends StateNotifier<List<Trip>> {
       ];
     }
   }
-
    Future<void> deleteTrip(String id) async {
     await HiveService.tripBox().delete(id);
     if (mounted) {
       state = state.where((t) => t.id != id).toList();
     }
   }
-
    void _handleCompletion(Trip trip) {
     if (trip.status == RideStatus.completed) {
       ref.read(budgetProvider.notifier).addExpense(
@@ -92,7 +87,6 @@ class TripNotifier extends StateNotifier<List<Trip>> {
       );
     }
   }
-
    void _notifyStatus(RideStatus status) {
     if (showMessage == null) return;
 

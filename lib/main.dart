@@ -16,7 +16,5 @@ void main() async {
   if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(RideTypeAdapter());
   if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(RideStatusAdapter());
   await Hive.openBox<Trip>('trips');
-
-
    runApp(const ProviderScope(child: MyApp()));
 }
